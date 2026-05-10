@@ -9,6 +9,7 @@ import {
   IconSparkles,
   IconLayoutColumns,
   IconCloudCheck,
+  IconInfoCircle,
 } from '@tabler/icons-react';
 import { scoreColor } from '../utils/chartData.js';
 
@@ -85,7 +86,7 @@ function ProviderPane({ providerKey, data, uploadId, triggerGenerate }) {
   const p = PROVIDERS[providerKey];
   const preloaded = data.savedInsights?.[providerKey];
 
-  const [status, setStatus] = useState(preloaded ? 'done' : 'idle');
+  const [status, setStatus] = useState(preloaded ? 'done' : 'disabled'); // Changed to 'disabled' initially
   const [insights, setInsights] = useState(preloaded?.insights || '');
   const [error, setError] = useState('');
   const [savedAt, setSavedAt] = useState(preloaded?.generatedAt || null);
@@ -142,26 +143,39 @@ function ProviderPane({ providerKey, data, uploadId, triggerGenerate }) {
         <div className="flex items-center gap-2">
           <span className="text-lg">{p.emoji}</span>
           <h3 className={`font-bold text-base ${p.headerText}`}>{p.label}</h3>
-          {preloaded && status === 'done' && !insights.startsWith(preloaded.insights?.slice(0, 20) ?? '') === false && savedAt && (
-            <span className="flex items-center gap-1 text-xs text-gray-600">
-              <IconCloudCheck size={12} />
-              Saved
-            </span>
-          )}
-          {savedAt && (
+          {preloaded && status === 'done' && insights && savedAt && (
             <span className="flex items-center gap-1 text-xs text-gray-600">
               <IconCloudCheck size={12} />
               Saved {fmtDate(savedAt)}
             </span>
           )}
         </div>
-        {status === 'done' && (
+        {status === 'disabled' ? (
+          <span className="inline-flex items-center gap-1 text-xs bg-amber-500/20 text-amber-300 px-2 py-1 rounded-full">
+            <IconAlertCircle size={12} />
+            Feature Disabled
+          </span>
+        ) : (
           <button
             onClick={generate}
-            className="text-gray-500 hover:text-gray-300 text-xs flex items-center gap-1 transition-colors"
+            disabled={status === 'loading'}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg ${
+              status === 'loading'
+                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                : `bg-${p.color}-500/20 hover:bg-${p.color}-500/30 text-${p.color}-300`
+            }`}
           >
-            <IconRefresh size={12} />
-            Regenerate
+            {status === 'loading' ? (
+              <>
+                <IconLoader2 size={12} className="animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <IconRefresh size={12} />
+                {status === 'done' ? 'Regenerate' : 'Generate'}
+              </>
+            )}
           </button>
         )}
       </div>
@@ -181,82 +195,61 @@ function ProviderPane({ providerKey, data, uploadId, triggerGenerate }) {
         </div>
       )}
 
-      {/* Idle */}
-      {status === 'idle' && (
-        <div className={`rounded-2xl border-2 p-8 flex flex-col items-center text-center gap-5 border-dashed border-gray-700`}>
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-${p.color}-500/10`}>
-            <IconBulb size={28} className={`text-${p.color}-400`} />
-          </div>
-          <div>
-            <p className="text-white font-semibold">Ask {p.label}</p>
-            <p className="text-gray-500 text-xs mt-1 max-w-xs">
-              Analyzes your Opportunity Score, gig data, and time-series to give
-              you actionable title, pricing, and growth advice.
-            </p>
-          </div>
-          <button
-            onClick={generate}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all
-              bg-${p.color}-500/20 hover:bg-${p.color}-500/30 border border-${p.color}-600/50 hover:border-${p.color}-500 text-${p.color}-300`}
-          >
-            <IconSparkles size={15} />
-            Generate {p.label} Insights
-          </button>
-        </div>
-      )}
-
-      {/* Loading */}
-      {status === 'loading' && (
-        <div className="rounded-2xl border border-gray-700 bg-gray-900/40 p-10 flex flex-col items-center gap-4 text-center">
-          <IconLoader2 size={32} className={`animate-spin ${p.spinnerColor}`} />
-          <div>
-            <p className="text-white font-semibold text-sm">{p.label} is thinking…</p>
-            <p className="text-gray-500 text-xs mt-1">Analyzing your data. Usually 5–20 seconds.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error */}
-      {status === 'error' && (
-        <div className="space-y-3">
-          <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4 text-sm">
-            <IconAlertCircle size={18} className="shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">Failed</p>
-              <p className="text-red-500/80 text-xs mt-0.5">{error}</p>
-              {error.includes('API_KEY') && (
-                <p className="mt-2 text-red-400/70 text-xs">
-                  Check that{' '}
-                  <code className="bg-red-900/30 px-1 rounded">
-                    {providerKey === 'bigmodel' ? 'BIGMODEL_API_KEY' : 'GEMINI_API_KEY'}
-                  </code>{' '}
-                  is set in <code className="bg-red-900/30 px-1 rounded">backend/.env</code> and restart.
-                </p>
-              )}
+      {/* Content */}
+      {status === 'disabled' ? (
+        <div className={`p-4 rounded-xl border ${p.cardBorder} bg-gray-900/40`}>
+          <div className="flex items-start gap-3 p-2 bg-gray-800/50 rounded-lg mb-3">
+            <IconInfoCircle size={16} className="text-blue-400 mt-0.5" />
+            <div className="text-sm text-gray-300">
+              <h4 className="font-bold text-gray-200 mb-1">Feature Status: Disabled</h4>
+              <p>This AI insights feature has been intentionally disabled in this deployment to simplify the application.</p>
             </div>
           </div>
-          <button onClick={generate} className="btn-secondary flex items-center gap-2 text-sm">
-            <IconRefresh size={14} />
-            Try Again
-          </button>
+          
+          <div className="text-sm text-gray-400 space-y-2">
+            <p className="text-gray-300 font-medium">To enable AI functionality:</p>
+            <ul className="list-disc pl-5 space-y-1 text-gray-400">
+              <li>Add your API keys to environment variables</li>
+              <li>Re-enable the AI modules in the backend</li>
+              <li>Install required dependencies</li>
+            </ul>
+            
+            <div className="mt-4 pt-3 border-t border-gray-800">
+              <p className="text-xs text-gray-500">
+                Note: This is a simplified deployment. The core CSV analysis and visualization features remain fully functional.
+              </p>
+            </div>
+          </div>
         </div>
-      )}
+      ) : status === 'loading' || status === 'done' || status === 'error' ? (
+        <div className={`p-4 rounded-xl border ${p.cardBorder} ${status === 'error' ? 'bg-red-500/10' : 'bg-gray-900/40'}`}>
+          {status === 'error' && (
+            <div className="flex items-start gap-2 text-red-400 mb-3">
+              <IconAlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium">Generation failed</p>
+                <p className="text-xs">{error}</p>
+              </div>
+            </div>
+          )}
 
-      {/* Result */}
-      {status === 'done' && insights && (
-        <div className={`card p-5 border ${p.cardBorder}`}>
-          <div
-            className="prose prose-invert prose-sm max-w-none leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(insights) }}
-          />
-          <p className="mt-4 pt-3 border-t border-gray-800 text-xs text-gray-600 flex items-center gap-1.5">
-            <span>{p.emoji}</span>
-            Generated by {p.label}
-            {modelUsed && <span>({modelUsed})</span>}
-            <span>· Always verify AI advice with your own research.</span>
-          </p>
+          {status === 'loading' && (
+            <div className="flex items-center gap-3 text-gray-400">
+              <IconLoader2 size={16} className="animate-spin" />
+              <p className="text-sm">Analyzing data with {p.label}...</p>
+            </div>
+          )}
+
+          {(status === 'done' || status === 'error') && (
+            <div
+              className="prose prose-invert max-w-none text-sm"
+              dangerouslySetInnerHTML={{
+                __html: status === 'done' ? renderMarkdown(insights) : '',
+              }}
+            />
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -268,11 +261,7 @@ function ProviderPane({ providerKey, data, uploadId, triggerGenerate }) {
 export default function AIInsightsTab({ data }) {
   const { scoreResult } = data;
   const uploadId = data.id || null;
-
-  // Sub-tab: 'gemini' | 'bigmodel' | 'compare'
   const [activePane, setActivePane] = useState('gemini');
-
-  // Counters used to signal ProviderPanes to auto-generate (for "Ask Both")
   const [geminiTrigger, setGeminiTrigger] = useState(0);
   const [bigmodelTrigger, setBigmodelTrigger] = useState(0);
 
@@ -292,6 +281,20 @@ export default function AIInsightsTab({ data }) {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+
+      {/* Info banner about disabled AI features */}
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+        <div className="flex gap-3">
+          <IconAlertCircle size={20} className="text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="font-bold text-amber-300 text-sm">AI Insights Disabled</h4>
+            <p className="text-amber-200/80 text-sm mt-1">
+              AI-powered insights have been removed from this deployment to simplify the application. 
+              The core CSV analysis and visualization features remain fully functional.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Page header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -326,6 +329,7 @@ export default function AIInsightsTab({ data }) {
                         : 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
                     : 'text-gray-500 hover:text-gray-300'
                   }`}
+                disabled
               >
                 {t.emoji && <span>{t.emoji}</span>}
                 {Icon && <Icon size={14} />}
@@ -337,7 +341,8 @@ export default function AIInsightsTab({ data }) {
 
         <button
           onClick={askBoth}
-          className="flex items-center gap-2 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-600/40 hover:border-purple-500/60 text-purple-300 hover:text-purple-200 rounded-xl px-4 py-2 text-sm font-medium transition-all"
+          disabled
+          className="flex items-center gap-2 bg-purple-500/15 border border-purple-600/40 text-purple-500/50 rounded-xl px-4 py-2 text-sm font-medium"
         >
           <IconSparkles size={14} />
           Ask Both Simultaneously

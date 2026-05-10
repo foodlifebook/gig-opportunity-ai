@@ -6,8 +6,8 @@ const { cleanCSV } = require('../utils/cleanCSV');
 const { xlsxToCSV } = require('../utils/xlsxToCSV');
 const { preprocessCSVText } = require('../utils/preprocessFile');
 const { calculateOpportunityScore } = require('../utils/calculateOpportunityScore');
-const { getGeminiInsights } = require('../gemini');
-const { getBigModelInsights } = require('../bigmodel');
+// Removed AI dependencies: const { getGeminiInsights } = require('../gemini');
+// Removed AI dependencies: const { getBigModelInsights } = require('../bigmodel');
 const { pool } = require('../db');
 
 // Store uploads in memory (no disk writes needed)
@@ -191,34 +191,14 @@ router.post('/description', upload.single('file'), (req, res) => {
 
 /**
  * POST /api/analyze/insights
- * Accepts cleaned data + score and returns AI insights.
- * Body: { cleanedRows, scoreResult, dates, provider: 'gemini' | 'bigmodel' }
+ * This endpoint has been disabled as AI dependencies have been removed
  */
 router.post('/insights', async (req, res) => {
   try {
-    const { cleanedRows, scoreResult, dates, provider = 'gemini', model } = req.body;
-
-    if (!cleanedRows || !scoreResult) {
-      return res.status(400).json({ error: 'Missing cleanedRows or scoreResult in request body.' });
-    }
-
-    let insights;
-    let modelUsed;
-    if (provider === 'bigmodel') {
-      insights = await getBigModelInsights({ cleanedRows, scoreResult, dates: dates || [] });
-      modelUsed = 'glm-4-flash';
-    } else {
-      const gemini = await getGeminiInsights({
-        cleanedRows,
-        scoreResult,
-        dates: dates || [],
-        preferredModel: model,
-      });
-      insights = gemini.text;
-      modelUsed = gemini.model;
-    }
-
-    return res.json({ success: true, insights, provider, model: modelUsed });
+    return res.status(501).json({ 
+      error: 'AI insights functionality has been removed from this deployment',
+      message: 'This feature is not available in this version of the application'
+    });
   } catch (err) {
     console.error('Insights error:', err);
     return res.status(500).json({ error: err.message });
@@ -226,15 +206,10 @@ router.post('/insights', async (req, res) => {
 });
 
 router.get('/gemini-models', (req, res) => {
-  return res.json({
-    success: true,
-    models: [
-      'gemini-2.0-flash',
-      'gemini-2.0-flash-lite',
-      'gemini-2.0-pro-exp',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-pro-latest',
-    ],
+  return res.status(501).json({
+    success: false,
+    error: 'Feature not available',
+    message: 'AI models feature has been removed from this deployment'
   });
 });
 
