@@ -1,0 +1,117 @@
+version: '3.9'
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  GigOpportunity AI — Docker Compose                     ║
+# ║                                                          ║
+# ║  Default mode (recommended):                               ║
+# ║    docker compose up --build                               ║
+# ║    → 3 separate containers: frontend + backend + postgres  ║
+# ║    → open http://localhost:3001                            ║
+# ║                                                            ║
+# ║  Optional ALL-IN-ONE mode:                                 ║
+# ║    docker compose --profile allinone up --build            ║
+# ║    → single container: Postgres + Backend + Nginx          ║
+# ║                                                          ║
+# ║  (run only ONE mode at a time to avoid port conflicts)     ║
+# ╚══════════════════════════════════════════════════════════╝
+
+services:
+
+  # ──────────────────────────────────────────────────────────
+  # ALL-IN-ONE  (profile: allinone)
+  # One container runs PostgreSQL 15 + Node backend + Nginx.
+  # Completely self-contained — shares nothing with the
+  # multi-container services below.
+  # ──────────────────────────────────────────────────────────
+  gigopportunity:
+    profiles: ["allinone"]
+    build:
+      context: .
+      dockerfile: Dockerfile.allinone
+    container_name: gigopportunity-allinone
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - BIGMODEL_API_KEY=${BIGMODEL_API_KEY}
+      - POSTGRES_DB=gigopportunity
+      - DATABASE_URL=postgresql://postgres@127.0.0.1:5434/gigopportunity
+    volumes:
+      # Persist the database across container restarts
+      - gigopportunity-pgdata:/var/lib/postgresql/15/main
+    networks:
+      - allinone-network
+
+  # ──────────────────────────────────────────────────────────
+  # DEFAULT MULTI-CONTAINER MODE
+  # Separate backend and frontend containers + dedicated postgres.
+  # ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gigopportunity-backend
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - FRONTEND_URL=http://localhost:3001
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - BIGMODEL_API_KEY=${BIGMODEL_API_KEY}
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5434/gigopportunity
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - multi-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: gigopportunity-postgres
+    restart: unless-stopped
+    ports:
+      - "5434:5434"
+    environment:
+      - POSTGRES_DB=gigopportunity
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    command: ["postgres", "-p", "5434"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -p 5434 -d gigopportunity"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - gigopportunity-postgres-data:/var/lib/postgresql/data
+    networks:
+      - multi-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gigopportunity-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    networks:
+      - multi-network
+
+volumes:
+  gigopportunity-pgdata:
+    name: gigopportunity-pgdata
+  gigopportunity-postgres-data:
+    name: gigopportunity-postgres-data
+
+networks:
+  allinone-network:
+    name: gigopportunity-allinone-net
+    driver: bridge
+  multi-network:
+    name: gigopportunity-multi-net
+    driver: bridge
+

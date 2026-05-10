@@ -1,0 +1,77 @@
+# ============================================================
+# Dockerfile.allinone
+# Self-contained image: PostgreSQL 15 + Node.js 20 backend
+#                       + Nginx (React frontend) + Supervisor
+#
+# Build context: the project root  (gig-opportunity-ai/)
+# Usage:
+#   docker-compose --profile allinone up --build
+# OR standalone:
+#   docker build -f Dockerfile.allinone -t gigopportunity .
+#   docker run -p 3001:3001 --env-file .env gigopportunity
+# ============================================================
+
+# ── Stage 1: Build the React frontend ──────────────────────────
+FROM node:20-alpine AS frontend-builder
+WORKDIR /build
+COPY frontend/package.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# ── Stage 2: Install backend production dependencies ───────────
+FROM node:20-alpine AS backend-builder
+WORKDIR /build
+COPY backend/package.json ./
+RUN npm install --production
+COPY backend/src ./src
+
+# ── Stage 3: All-in-one runtime image ──────────────────────────
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PG_VERSION=15 \
+    PG_DATA=/var/lib/postgresql/15/main \
+    PG_CONF=/etc/postgresql/15/main \
+    PG_BIN=/usr/lib/postgresql/15/bin \
+    NODE_ENV=production
+
+# Install curl/gnupg for repo setup, then PostgreSQL 15 (PGDG),
+# Node.js 20 (NodeSource), Nginx, and Supervisor in one layer.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gnupg curl ca-certificates \
+    # ── PostgreSQL 15 (official PGDG repo) ──────────────────────
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+       | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] \
+       https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+       > /etc/apt/sources.list.d/pgdg.list \
+    # ── Node.js 20 (NodeSource) ──────────────────────────────────
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        postgresql-15 \
+        postgresql-client-15 \
+        nodejs \
+        nginx \
+        supervisor \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# ── Copy built assets ──────────────────────────────────────────
+COPY --from=frontend-builder /build/dist /usr/share/nginx/html
+COPY --from=backend-builder  /build      /app/backend
+
+# ── Copy configuration files ───────────────────────────────────
+COPY nginx-allinone.conf        /etc/nginx/sites-available/gigopportunity
+COPY supervisord.conf           /etc/supervisor/conf.d/gigopportunity.conf
+COPY docker-entrypoint.sh       /docker-entrypoint.sh
+
+# Wire up nginx site and create log dirs
+RUN rm -f /etc/nginx/sites-enabled/default \
+    && ln -s /etc/nginx/sites-available/gigopportunity \
+             /etc/nginx/sites-enabled/gigopportunity \
+    && mkdir -p /var/log/supervisor \
+    && chmod +x /docker-entrypoint.sh
+
+EXPOSE 3001
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
