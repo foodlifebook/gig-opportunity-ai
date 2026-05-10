@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../utils/api';
 import {
   IconLoader2,
   IconAlertCircle,
@@ -103,7 +104,7 @@ function ProviderPane({ providerKey, data, uploadId, triggerGenerate }) {
     setStatus('loading');
     setError('');
     try {
-      const { data: res } = await axios.post('/api/analyze/insights', {
+      const { data: res } = await axios.post(`${API_BASE_URL}/analyze/insights`, {
         cleanedRows: data.cleanedRows,
         scoreResult: data.scoreResult,
         dates: data.dates,
@@ -118,7 +119,7 @@ function ProviderPane({ providerKey, data, uploadId, triggerGenerate }) {
       // Persist to history DB if we have an upload id
       if (uploadId) {
         try {
-          await axios.post(`/api/history/${uploadId}/insights`, {
+          await axios.post(`${API_BASE_URL}/history/${uploadId}/insights`, {
             provider: providerKey,
             modelName: res.model || p.model,
             insights: res.insights,

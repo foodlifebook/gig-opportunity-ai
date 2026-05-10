@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import Papa from 'papaparse';
 import axios from 'axios';
+import API_BASE_URL from '../utils/api';
 import {
   IconUpload,
   IconFile,
@@ -174,7 +175,7 @@ export default function UploadTab({ onAnalysisComplete }) {
         files.map(async (f) => {
           const formData = new FormData();
           formData.append('csv', f);
-          const { data } = await axios.post('/api/analyze/upload', formData, {
+          const { data } = await axios.post(`${API_BASE_URL}/analyze/upload`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
           return { ok: true, filename: f.name, data };
@@ -203,7 +204,7 @@ export default function UploadTab({ onAnalysisComplete }) {
     formData.append('csv', files[0]);
 
     try {
-      const { data } = await axios.post('/api/analyze/upload', formData, {
+      const { data } = await axios.post(`${API_BASE_URL}/analyze/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setStatus('done');

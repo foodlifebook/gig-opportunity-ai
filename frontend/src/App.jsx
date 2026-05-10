@@ -7,6 +7,7 @@ import {
   IconHistory,
 } from '@tabler/icons-react';
 import axios from 'axios';
+import API_BASE_URL from './utils/api';
 import UploadTab from './components/UploadTab.jsx';
 import DashboardTab from './components/DashboardTab.jsx';
 import ReportTab from './components/ReportTab.jsx';
@@ -32,7 +33,7 @@ export default function App() {
   useEffect(() => {
     const fetchVersion = async () => {
       try {
-        const { data } = await axios.get('/api/version');
+        const { data } = await axios.get(`${API_BASE_URL}/version`);
         setBackendVersion(data.backend);
       } catch (err) {
         console.warn('Could not fetch backend version:', err.message);
@@ -49,7 +50,7 @@ export default function App() {
 
     const fetchHistoryItem = async () => {
       try {
-        const { data } = await axios.get(`/api/history/${historyId}`);
+        const { data } = await axios.get(`${API_BASE_URL}/history/${historyId}`);
         const loaded = {
           ...data.data,
           rowCount: data.data.rowCount,

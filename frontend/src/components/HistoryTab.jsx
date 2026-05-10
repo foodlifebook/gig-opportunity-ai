@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../utils/api';
 import {
   IconHistory,
   IconDownload,
@@ -372,7 +373,7 @@ export default function HistoryTab({ onLoadAnalysis }) {
     try {
       const params = { sort, order };
       if (labelFilter) params.label = labelFilter;
-      const { data } = await axios.get('/api/history', { params });
+      const { data } = await axios.get(`${API_BASE_URL}/history`, { params });
       if (data.dbDisabled) {
         setFetchStatus('disabled');
         return;
@@ -499,7 +500,7 @@ export default function HistoryTab({ onLoadAnalysis }) {
 
     setReanalyzing(true);
     try {
-      await axios.post('/api/history/reanalyze', { ids });
+      await axios.post(`${API_BASE_URL}/history/reanalyze`, { ids });
       await fetchHistory();
       alert(`Reanalyzed ${ids.length} item(s) with all opportunity formulas.`);
     } catch (err) {
@@ -516,7 +517,7 @@ export default function HistoryTab({ onLoadAnalysis }) {
     setBulkDeleting(true);
     try {
       for (const id of ids) {
-        await axios.delete(`/api/history/${id}`);
+        await axios.delete(`${API_BASE_URL}/history/${id}`);
       }
       setHistory((prev) => prev.filter((h) => !ids.includes(h.id)));
       setSelected(new Set());
