@@ -11,6 +11,11 @@ const FRONTEND_VERSION = '1.2.1';
 
 const app = express();
 
+// Initialize DB on startup
+initDB().catch((err) => {
+  console.error('[DB] Init error:', err.message);
+});
+
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3001',
@@ -20,12 +25,12 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Version endpoint
-app.get('/api/version', (req, res) => {
+app.get('/version', (req, res) => {
   console.log('Version endpoint called');
   res.json({ 
     backend: BACKEND_VERSION, 
@@ -34,14 +39,15 @@ app.get('/api/version', (req, res) => {
   });
 });
 
-// Routes
-app.use('/api/analyze', analyzeRouter);
-app.use('/api/history', historyRouter);
+// Routes (no /api prefix needed - Vercel handles that)
+app.use('/analyze', analyzeRouter);
+app.use('/history', historyRouter);
 
-// Initialize DB
-initDB().catch((err) => {
-  console.error('[DB] Init error:', err.message);
+// Error handling
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: err.message });
 });
 
-// Export for Vercel
+// Export for Vercel serverless
 module.exports = app;
