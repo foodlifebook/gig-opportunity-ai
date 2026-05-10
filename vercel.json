@@ -20,11 +20,5 @@
       "src": "/(.*)",
       "dest": "/frontend/dist/$1"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "GEMINI_API_KEY": "@gemini_api_key",
-    "BIGMODEL_API_KEY": "@bigmodel_api_key",
-    "FRONTEND_URL": "https://<your-vercel-domain>.vercel.app"
-  }
+  ]
 }
