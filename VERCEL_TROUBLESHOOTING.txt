@@ -1,0 +1,7 @@
+// If vercel.json still doesn't work, try this approach:
+// Delete vercel.json and add this to frontend/vercel.json instead
+
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
+}
