@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # GigOpportunity AI
 
 > Upload any Fiverr niche CSV → auto-clean → analyze demand vs saturation → beautiful interactive charts + Opportunity Score (🟢🟡🔴) → Gemini AI insights.
@@ -157,3 +158,6 @@ gig-opportunity-ai/
 ├── .env.example
 └── README.md
 ```
+=======
+# gig-opportunity-ai
+>>>>>>> b55a6e924aa49acd0d3bce66d396d92f9e22f8e0
