@@ -25,12 +25,12 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Version endpoint
-app.get('/version', (req, res) => {
+app.get('/api/version', (req, res) => {
   console.log('Version endpoint called');
   res.json({ 
     backend: BACKEND_VERSION, 
@@ -39,14 +39,22 @@ app.get('/version', (req, res) => {
   });
 });
 
-// Routes (no /api prefix needed - Vercel handles that)
-app.use('/analyze', analyzeRouter);
-app.use('/history', historyRouter);
+// Routes (with /api prefix since Vercel routes /api/* to this function)
+app.use('/api/analyze', analyzeRouter);
+app.use('/api/history', historyRouter);
 
-// Error handling
+// Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: err.message });
+  console.error('Error:', err.message, err.stack);
+  res.status(500).json({ 
+    error: err.message,
+    type: err.constructor.name 
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found', path: req.path });
 });
 
 // Export for Vercel serverless
